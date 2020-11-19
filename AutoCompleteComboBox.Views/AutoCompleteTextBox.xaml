@@ -32,21 +32,20 @@
                              Padding="0,0,0,0"    
                              Background="Transparent"    
                              Foreground="Black" 
-                             Text="{Binding Text}"
+                             Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}"
                              >
 
                     <i:Interaction.Triggers>
                         <i:EventTrigger EventName="TextChanged">
-                            <i:InvokeCommandAction PassEventArgsToCommand="True" Command="{Binding AutoTextBoxTextChanged}" />
+                            <i:InvokeCommandAction Command="{Binding AutoTextBoxTextChanged}" />
                         </i:EventTrigger>
                     </i:Interaction.Triggers>
 
                 </TextBox>    
             </Border>
 
-            <!-- Auto Suggestion box -->
-            <Popup x:Name="autoListPopup"    
-                   Visibility="{Binding Visibility}" 
+            <!-- Auto Suggestion box  removed  Visibility="{Binding Visibility}" -->
+            <Popup x:Name="autoListPopup"  
                    IsOpen="{Binding IsOpen}"
                    Height="200"    
                    StaysOpen="False"    
@@ -57,9 +56,16 @@
                          Visibility="{Binding Visibility}"    
                          Width="500"    
                          Height="200" 
-                         ItemsSource="{Binding AutoSuggestionList}"
-                         SelectedItem="{Binding SelectedSuggestion}"
-                         />
+                         Background="Bisque"
+                         ItemsSource="{Binding Suggestions}"
+                         SelectedItem="{Binding SelectedSuggestion}">
+
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="SelectionChanged">
+                            <i:InvokeCommandAction Command="{Binding AutoListSelectionChanged}" />
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
+                </ListBox>
             </Popup>
         </StackPanel>
     </Grid>

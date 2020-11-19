@@ -12,20 +12,24 @@ module App =
          IsOpen: bool
          AutoSuggestionList: string list
          Suggestions: string list option
-         Text: string
+         Text: string option
+         SelectedItem: string option
        }
 
     let init () = {
-      Visibility = Visibility.Visible   
+      Visibility = Visibility.Collapsed  
       IsOpen = true
       AutoSuggestionList = [ "Alabama"; "Alaska"; "Arizona"; "Arkansas"; "California"; "Colorado"; "Connecticut"; 
                              "Delaware"; "Florida"; "Georgia"; "Hawaii"; "Idaho"; "Illinois"; "Indiana"; "Iowa" ]
-      Text = "Hi"
+      Text = Some "Hi"
       Suggestions = None
+      SelectedItem = None
       }
 
     type Msg =
-      | SetText of string
+      | SetOpen of bool
+      | SetText of string option
+      | SetSelectedItem of string option
       | AutoListSelectionChanged
       | AutoTextBoxTextChanged
       | MakeVisible
@@ -39,36 +43,52 @@ module App =
          { m with Visibility = Visibility.Visible; IsOpen = true } 
 
     let Suggest m =
-        let SuggestionList =
-            m.AutoSuggestionList |> List.filter (fun s -> s.ToLower().Contains(m.Text.ToLower())) |> Some
-        {m with Suggestions = SuggestionList }
+        match m.Text with
+        | Some t -> 
+            let SuggestionList =
+                m.AutoSuggestionList |> List.filter (fun s -> s.ToLower().Contains(t.ToLower())) |> Some
+            {m with Suggestions = SuggestionList }                                 //|> printfn "list is %A"
+        | None -> m
 
+    let handleAutoListSelectionChanged m =
+        match m.SelectedItem with
+        | Some i -> m |> CloseAutoSuggestionBox |> (fun m -> {m with Text = Some i})
+        | None -> m |> CloseAutoSuggestionBox |> (fun m -> {m with Text = None})
+        
+
+    let handleAutoTextBoxTextChanged m =
+        let notNullOrEmpty = not << System.String.IsNullOrEmpty
+
+        match m.Text with
+        | None  -> CloseAutoSuggestionBox m          
+        | _ -> m |> OpenAutoSuggestionBox |> Suggest 
+      
 
     let update msg m  =
         match msg with
+        | SetOpen o -> { m with IsOpen = o }
         | SetText s  -> { m with Text = s }
-        | AutoListSelectionChanged
-        | AutoTextBoxTextChanged
+        | SetSelectedItem i -> {m with SelectedItem = i }
+        | AutoListSelectionChanged -> m |> handleAutoListSelectionChanged
+        | AutoTextBoxTextChanged -> m |> handleAutoTextBoxTextChanged
         | MakeVisible
         | Collapse
         | NoOp -> m
 
-    let handleAutoTextBoxTextChanged obj m =
-      let notNullOrEmpty = not << System.String.IsNullOrEmpty
-
-      match m.Text with
-      | null  -> CloseAutoSuggestionBox m          |> ignore 
-      | _ -> m |> OpenAutoSuggestionBox |> Suggest |> ignore
-
-      NoOp
+    
 
     let bindings()  = [     
-       "AutoSuggestionList" |> Binding.oneWay ( fun m -> m.AutoSuggestionList)
-       //"SelectedSuggestion"
+       "Suggestions" |> Binding.oneWay ( fun m -> 
+                                                    match m.Suggestions with
+                                                    | Some s -> s
+                                                    | None -> []
+                                        )
        "Visibility" |> Binding.oneWay ( fun m -> m.Visibility)
-       "IsOpen"  |> Binding.oneWay ( fun m -> m.IsOpen)
-       "Text"  |> Binding.twoWay((fun m -> m.Text),  SetText)
-       "AutoTextBoxTextChanged" |> Binding.cmdParam (handleAutoTextBoxTextChanged)
+       "IsOpen"  |> Binding.twoWay ( (fun m -> m.IsOpen), SetOpen)
+       "Text"  |> Binding.twoWayOpt((fun m -> m.Text),  SetText)
+       "SelectedSuggestion"     |> Binding.twoWayOpt((fun m -> m.SelectedItem), SetSelectedItem)
+       "AutoTextBoxTextChanged" |> Binding.cmd AutoTextBoxTextChanged
+       "AutoListSelectionChanged" |> Binding.cmd AutoListSelectionChanged
     ]
 
     [<EntryPoint; STAThread>]
